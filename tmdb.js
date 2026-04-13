@@ -1,48 +1,50 @@
-import axios from 'axios';
-import config from './config.js';
+import fetch from "node-fetch";
 
-// Função para procurar um filme por título e (opcionalmente) por ano
-async function searchMovie(title, year) {
-    const apiParams = {
-        api_key: config.tmdbApiKey,
-        query: title,
-        language: 'pt-BR'
-    };
-    if (year) {
-        apiParams.primary_release_year = year;
-    }
-    const response = await axios.get(`https://api.themoviedb.org/3/search/movie`, { params: apiParams });
-    return response.data.results;
+const API_KEY = process.env.TMDB_API_KEY;
+
+// 🔎 BUSCA FILME + SÉRIE
+export async function searchMovie(nome) {
+    const res = await fetch(
+        `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(nome)}&language=pt-BR`
+    );
+
+    const data = await res.json();
+
+    return data.results
+        .filter(r => r.media_type === "movie" || r.media_type === "tv")
+        .slice(0, 5)
+        .map(r => ({
+            id: r.id,
+            title: r.title || r.name,
+            media_type: r.media_type
+        }));
 }
 
-// Função para obter os detalhes de um filme específico pelo seu ID
-async function getMovieDetails(movieId) {
-    const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieId}`, {
-        params: { api_key: config.tmdbApiKey, language: 'pt-BR' }
-    });
-    return response.data;
+// 📄 DETALHES (FILME OU SÉRIE)
+export async function getMovieDetails(id, tipo = "movie") {
+    const res = await fetch(
+        `https://api.themoviedb.org/3/${tipo}/${id}?api_key=${API_KEY}&language=pt-BR`
+    );
+
+    return await res.json();
 }
 
-// Função para obter recomendações baseadas num filme
-async function getMovieRecommendations(movieId) {
-    const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieId}/recommendations`, {
-        params: { api_key: config.tmdbApiKey, language: 'pt-BR' }
-    });
-    return response.data.results;
+// 🎯 RECOMENDAÇÕES (mantive filme por padrão)
+export async function getMovieRecommendations(id) {
+    const res = await fetch(
+        `https://api.themoviedb.org/3/movie/${id}/recommendations?api_key=${API_KEY}&language=pt-BR`
+    );
+
+    const data = await res.json();
+    return data.results || [];
 }
 
-// Função para obter filmes populares de um género
-async function getMoviesByGenre(genreId) {
-    const response = await axios.get(`https://api.themoviedb.org/3/discover/movie`, {
-        params: {
-            api_key: config.tmdbApiKey,
-            language: 'pt-BR',
-            with_genres: genreId,
-            sort_by: 'popularity.desc',
-            'vote_count.gte': 100
-        }
-    });
-    return response.data.results;
-}
+// 🎭 POR GÊNERO
+export async function getMoviesByGenre(genreId) {
+    const res = await fetch(
+        `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=${genreId}&language=pt-BR`
+    );
 
-export { searchMovie, getMovieDetails, getMovieRecommendations, getMoviesByGenre };
+    const data = await res.json();
+    return data.results || [];
+}
