@@ -33,6 +33,7 @@ client.on(Events.InteractionCreate, async interaction => {
         // ================= BOTÕES =================
         if (interaction.isButton()) {
 
+            // ESCOLHER FILME/SÉRIE
             if (interaction.customId.startsWith('filme_escolha_')) {
 
                 const [, , id, tipo] = interaction.customId.split('_');
@@ -70,6 +71,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 });
             }
 
+            // BOTÃO DAR NOTA
             if (interaction.customId.startsWith('avaliar_filme_')) {
 
                 const [, , id, tipo] = interaction.customId.split('_');
@@ -94,7 +96,8 @@ client.on(Events.InteractionCreate, async interaction => {
         // ================= MODAL =================
         if (interaction.isModalSubmit()) {
 
-            const [, id] = interaction.customId.split('_');
+            const [, id, tipo] = interaction.customId.split('_');
+
             const nota = parseFloat(interaction.fields.getTextInputValue('nota'));
 
             if (isNaN(nota) || nota < 0 || nota > 10) {
@@ -116,7 +119,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 WHERE movie_id = ?
             `).get(id);
 
-            const movie = await getMovieDetails(id);
+            const movie = await getMovieDetails(id, tipo);
 
             db.prepare(`
                 INSERT INTO avaliacoes_filmes (movie_id, title, server_score, vote_count)
@@ -139,7 +142,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             const { commandName } = interaction;
 
-            // 🎬 BUSCAR
+            // BUSCAR FILME/SÉRIE
             if (commandName === 'filme') {
 
                 await interaction.deferReply();
@@ -160,7 +163,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     );
 
                 const row = new ActionRowBuilder().addComponents(
-                    results.map((m, i) =>
+                    results.slice(0, 5).map((m, i) =>
                         new ButtonBuilder()
                             .setCustomId(`filme_escolha_${m.id}_${m.media_type}`)
                             .setLabel(`${i + 1}`)
@@ -174,7 +177,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 });
             }
 
-            // 🎬 LISTA
+            // LISTA
             if (commandName === 'filmesavaliados') {
 
                 await interaction.deferReply();
@@ -200,7 +203,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ embeds: [embed] });
             }
 
-            // 📊 STATS
+            // STATS
             if (commandName === 'stats') {
 
                 await interaction.deferReply();
@@ -223,7 +226,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ embeds: [embed] });
             }
 
-            // 🎯 RECOMENDAR
+            // RECOMENDAR
             if (commandName === 'recomendar') {
 
                 await interaction.deferReply();
